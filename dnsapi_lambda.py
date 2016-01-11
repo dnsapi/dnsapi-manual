@@ -164,6 +164,10 @@ def run_set_mode(set_hostname, validation_hash, source_ip):
     # Calculate the validation hash.
     calculated_hash = hashlib.sha256(
         source_ip + set_hostname + shared_secret).hexdigest()
+    print(calculated_hash)
+    print(validation_hash)
+    print(source_ip)
+    print(shared_secret)
     # Compare the validation_hash from the client to the
     # calculated_hash.
     # If they don't match, error out.
