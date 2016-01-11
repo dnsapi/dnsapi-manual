@@ -11,22 +11,21 @@ from boto3.dynamodb.conditions import Key, Attr
 # Tell the script where to find the configuration file.
 config_region = 'us-east-1'
 config_table_name = 'dnsapi'
-config_s3_bucket = 'ipdns.xyz'
+config_s3_bucket = 'dnsapi.xyz'
 config_s3_key = 'config.json'
 
 def query_db(set_hostname):
     dynamodb = boto3.resource('dynamodb', region_name=config_region)
     table = dynamodb.Table(config_table_name)
-    response = table.query(
-        KeyConditionExpression=Key('hostname').eq(set_hostname)
-    )
-    if response['Count'] == 0:
+    response = table.get_item(Key={'hostname':set_hostname})
+    print(response)
+    if "Item" not in response:
         return_status = 'fail'
         return_message = 'hostname not found'
         return {'return_status': return_status,
                 'return_message': return_message}
 
-    return json.loads(response['Items'][0]['settings'])
+    return json.loads(response['Item']['settings'])
 
 ''' This function pulls the json config file from S3 and
     returns a python dictionary.
@@ -134,6 +133,7 @@ def run_set_mode(set_hostname, validation_hash, source_ip):
     # Try to read the config, and error if you can't.
     try:
         record_config_set = query_db(set_hostname)
+        print(record_config_set)
     except:
         return_status = 'fail'
         return_message = 'There was an issue finding '\
