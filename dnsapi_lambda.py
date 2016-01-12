@@ -2,6 +2,8 @@
 # Script variables use lower_case_
 from __future__ import print_function
 
+import time
+import datetime
 import json
 import re
 import hashlib
@@ -13,16 +15,18 @@ config_region = 'us-east-1'
 config_table_name = 'dnsapi'
 config_s3_bucket = 'dnsapi.xyz'
 config_s3_key = 'config.json'
+timestamp = datetime.datetime.utcfromtimestamp(time.time())
+timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')
 
 def query_db(set_hostname):
     dynamodb = boto3.resource('dynamodb', region_name=config_region)
     table = dynamodb.Table(config_table_name)
     response = table.get_item(Key={'hostname':set_hostname})
-    print(response)
     if "Item" not in response:
         return_status = 'fail'
         return_message = 'hostname not found'
-        return {'return_status': return_status,
+        return {'return_timestamp': timestamp,
+                'return_status': return_status,
                 'return_message': return_message}
 
     return json.loads(response['Item']['settings'])
@@ -96,7 +100,8 @@ def route53_client(execution_mode, aws_region, route_53_zone_id,
                     return_status = 'fail'
                     return_message = 'You should only have a single value for'\
                     ' your dynamic record.  You currently have more than one.'
-                    return {'return_status': return_status,
+                    return {'return_timestamp': timestamp,
+                            'return_status': return_status,
                             'return_message': return_message}
 
     # Set the DNS record to the current IP.
@@ -133,12 +138,12 @@ def run_set_mode(set_hostname, validation_hash, source_ip):
     # Try to read the config, and error if you can't.
     try:
         record_config_set = query_db(set_hostname)
-        print(record_config_set)
     except:
         return_status = 'fail'
         return_message = 'There was an issue finding '\
             'or reading the configuration.'
-        return {'return_status': return_status,
+        return {'return_timestamp': timestamp,
+                'return_status': return_status,
                 'return_message': return_message}
 
     # Get the section of the config related to the requested hostname.
@@ -158,23 +163,21 @@ def run_set_mode(set_hostname, validation_hash, source_ip):
         return_status = 'fail'
         return_message = 'You must pass a valid sha256 hash in the '\
             'hash= argument.'
-        return {'return_status': return_status,
+        return {'return_timestamp': timestamp,
+                'return_status': return_status,
                 'return_message': return_message}
 
     # Calculate the validation hash.
     calculated_hash = hashlib.sha256(
         source_ip + set_hostname + shared_secret).hexdigest()
-    print(calculated_hash)
-    print(validation_hash)
-    print(source_ip)
-    print(shared_secret)
     # Compare the validation_hash from the client to the
     # calculated_hash.
     # If they don't match, error out.
     if not calculated_hash == validation_hash:
         return_status = 'fail'
         return_message = 'Validation hashes do not match.'
-        return {'return_status': return_status,
+        return {'return_timestamp': timestamp,
+                'return_status': return_status,
                 'return_message': return_message}
     # If they do match, get the current ip address associated with
     # the hostname DNS record from Route 53.
@@ -195,7 +198,8 @@ def run_set_mode(set_hostname, validation_hash, source_ip):
         elif route53_get_response['return_status'] == 'fail':
             return_status = route53_get_response['return_status']
             return_message = route53_get_response['return_message']
-            return {'return_status': return_status,
+            return {'return_timestamp': timestamp,
+                    'return_status': return_status,
                     'return_message': return_message}
         else:
             route53_ip = route53_get_response['return_message']
@@ -205,7 +209,8 @@ def run_set_mode(set_hostname, validation_hash, source_ip):
             return_status = 'success'
             return_message = 'Your IP address matches '\
                 'the current Route53 DNS record.'
-            return {'return_status': return_status,
+            return {'return_timestamp': timestamp,
+                    'return_status': return_status,
                     'return_message': return_message}
         # If the IP addresses do not match or if the record does not exist,
         # Tell Route 53 to set the DNS record.
@@ -221,8 +226,21 @@ def run_set_mode(set_hostname, validation_hash, source_ip):
             return_status = 'success'
             return_message = 'Your hostname record ' + set_hostname +\
                 ' has been set to ' + source_ip
-            return {'return_status': return_status,
+            return {'return_timestamp': timestamp,
+                    'return_status': return_status,
                     'return_message': return_message}
+
+''' This function logs to dynamodb '''
+
+def log(hostname, log):
+    dynamodb = boto3.resource('dynamodb', region_name=config_region)
+    table = dynamodb.Table(config_table_name)
+    response = table.get_item(Key={'hostname':hostname})
+    item = response['Item']
+    item['log'] = log
+    table.put_item(Item=item)
+
+    return log
 
 ''' The function that Lambda executes.
     It contains the main script logic, calls 
@@ -242,7 +260,8 @@ def lambda_handler(event, context):
     if execution_mode not in execution_modes:
         return_status = 'fail'
         return_message = 'You must pass mode=get or mode=set arguments.'
-        return_dict = {'return_status': return_status,
+        return_dict = {'return_timestamp': timestamp,
+                       'return_status': return_status,
                        'return_message': return_message}
 
     # For get mode, reflect the client's public IP address and exit.
@@ -255,6 +274,7 @@ def lambda_handler(event, context):
     # Proceed with set mode to create or update the DNS record.
     else:
         return_dict = run_set_mode(set_hostname, validation_hash, source_ip)
+        log(set_hostname, return_dict)
 
     # This Lambda function always exits as a success
     # and passes success or failure information in the json message.

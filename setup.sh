@@ -44,6 +44,8 @@ OUT_LAMBDA_CREATE=$(aws lambda create-function --function-name dnsapi_lambda --r
 echo $OUT_LAMBDA_CREATE
 echo "----"
 
+exit
+
 echo "creating api"
 OUT_API_CREATE=$(aws apigateway create-rest-api --name dnsapi)
 echo $OUT_API_CREATE
