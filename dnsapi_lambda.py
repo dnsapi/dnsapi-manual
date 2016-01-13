@@ -274,7 +274,7 @@ def lambda_handler(event, context):
     # Proceed with set mode to create or update the DNS record.
     else:
         return_dict = run_set_mode(set_hostname, validation_hash, source_ip)
-        log(set_hostname, return_dict)
+        #log(set_hostname, return_dict)
 
     # This Lambda function always exits as a success
     # and passes success or failure information in the json message.
