@@ -31,6 +31,7 @@ echo "deleting lambda function"
 OUT_LAMBDA_DELETE=$(aws lambda delete-function --function-name dnsapi_lambda)
 echo $OUT_LAMBDA_DELETE
 
+sleep 5
 echo "creating lambda function"
 OUT_LAMBDA_CREATE=$(aws lambda create-function --function-name dnsapi_lambda --role arn:aws:iam::669895679474:role/dnsapi_lambda --runtime python2.7 --handler dnsapi_lambda.lambda_handler --code '{"S3Bucket": "dnsapi.xyz","S3Key":"dnsapi_lambda.zip"}' )
 echo $OUT_LAMBDA_CREATE
