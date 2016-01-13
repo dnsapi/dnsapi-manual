@@ -11,31 +11,28 @@
 #fi
 
 # Set variables based on input arguments
-#myHostname=$1
-#mySharedSecret=$2
-#myAPIURL=$3
+myHostname=$1
+mySharedSecret=$2
+myAPIURL=$3
 
 #TEMP
-myHostname="napalm.ipdns.xyz."
-myHostname2="napalm.dyn.dnsapi.xyz."
+#myHostname="napalm.ipdns.xyz."
+#myHostname2="napalm.dyn.dnsapi.xyz."
 mySharedSecret="SHARED_SECRET_1"
 myAPIURL="api.ipdns.xyz/prod"
 # Call the API in get mode to get the IP address
 myIP=`curl -q -s  "https://$myAPIURL?mode=get" | egrep -o '[0-9\.]+'`
 # Build the hashed token
 myHash=`echo -n $myIP$myHostname$mySharedSecret | shasum -a 256 | awk '{print $1}'`
-myHash2=`echo -n $myIP$myHostname2$mySharedSecret | shasum -a 256 | awk '{print $1}'`
 #echo variables
 echo $myHostname
 echo $myHash
 echo
-echo $myHostname2
-echo $myHash2
-echo
 echo $mySharedSecret
 echo $myAPIURL
 echo $myIP
+echo
 # Call the API in set mode to update Route 53
 curl -q -s "https://$myAPIURL?mode=set&hostname=$myHostname&hash=$myHash"
-curl -q -s "https://$myAPIURL?mode=set&hostname=$myHostname2&hash=$myHash2"
+echo
 echo

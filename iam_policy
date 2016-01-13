@@ -15,18 +15,6 @@
 	}, {
 		"Effect": "Allow",
 		"Action": [
-			"route53:ChangeResourceRecordSets"
-		],
-		"Resource": "arn:aws:route53:::hostedzone/Z6IDOF3069NZ1"
-	}, {
-		"Effect": "Allow",
-		"Action": [
-			"route53:ListResourceRecordSets"
-		],
-		"Resource": "arn:aws:route53:::hostedzone/Z6IDOF3069NZ1"
-	}, {
-		"Effect": "Allow",
-		"Action": [
 			"route53:GetChange"
 		],
 		"Resource": "arn:aws:route53:::change/*"

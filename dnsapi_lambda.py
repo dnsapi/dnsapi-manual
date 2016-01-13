@@ -232,10 +232,10 @@ def run_set_mode(set_hostname, validation_hash, source_ip):
 
 ''' This function logs to dynamodb '''
 
-def log(hostname, log):
+def log(set_hostname, log):
     dynamodb = boto3.resource('dynamodb', region_name=config_region)
     table = dynamodb.Table(config_table_name)
-    response = table.get_item(Key={'hostname':hostname})
+    response = table.get_item(Key={'hostname':set_hostname})
     item = response['Item']
     item['log'] = log
     table.put_item(Item=item)
